@@ -59,7 +59,7 @@ The locator scans for that 6-byte sequence and validates that the next byte star
 This makes the tool:
 
 - **Version-agnostic.** Works on any lotus release whose persistence format uses cbor-gen on a `SectorInfo` struct with a top-level `State` field. That's every release since the FSM was introduced.
-- **Minimal-dependency.** Pulls in `go-datastore` and `go-ds-badger2` only.
+- **Minimal-dependency.** Pulls in `go-datastore` and `go-ds-leveldb` only.
 - **Inspectable.** A single Go file, ~400 lines, plus tests.
 
 ## False-positive risk for the locator
@@ -77,7 +77,7 @@ For paranoia, a future version could validate by re-running the locator on the r
 ## Datastore layout
 
 - Repo path: `~/.lotusminer` (or wherever `LOTUS_MINER_PATH` points).
-- Metadata DB: `~/.lotusminer/datastore/metadata` (badger v2).
+- Metadata DB: `~/.lotusminer/datastore/metadata` (LevelDB; see lotus `node/repo/fsrepo_ds.go`).
 - Namespace inside the DB: `/sectors` (defined as `SectorStorePrefix` in `storage/pipeline/sealing.go`).
 - Key format: `/sectors/<decimal-sector-number>` (from `go-statestore::ToKey`).
 - Value: CBOR-encoded `SectorInfo`.
@@ -96,7 +96,7 @@ Run with `go test ./...`.
 
 ## Open questions
 
-- Does this tool need to worry about badger transaction batching? Currently each `ds.Put` is a single write. For typical "8 stuck sectors" scale this is fine. For thousands of stuck sectors it might be worth batching.
+- Does this tool need to worry about LevelDB transaction batching? Currently each `ds.Put` is a single write. For typical "8 stuck sectors" scale this is fine. For thousands of stuck sectors it might be worth using `datastore.Batch`.
 - Should the tool also clear `LastErr` / retry counters when it rewrites state? Probably yes for `--to CommitFailed`, so the FSM doesn't immediately bail thinking it's failed too many times. Not currently implemented; the rewrite is `State`-only.
 
 ## Contributing

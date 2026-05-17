@@ -56,7 +56,8 @@ import (
 
 	datastore "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
-	badger "github.com/ipfs/go-ds-badger2"
+	levelds "github.com/ipfs/go-ds-leveldb"
+	ldbopts "github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 const (
@@ -414,8 +415,14 @@ func openMetadata(repoPath string) (datastore.Batching, error) {
 	if _, err := os.Stat(path); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	opts := badger.DefaultOptions
-	ds, err := badger.NewDatastore(path, &opts)
+	// lotus-miner stores the metadata namespace as a LevelDB instance
+	// (see lotus node/repo/fsrepo_ds.go). Opening with the same options
+	// lotus uses to avoid any compatibility surprise.
+	ds, err := levelds.NewDatastore(path, &levelds.Options{
+		Compression: ldbopts.NoCompression,
+		NoSync:      false,
+		Strict:      ldbopts.StrictAll,
+	})
 	if err != nil {
 		return nil, err
 	}
